@@ -45,7 +45,7 @@ class UserRegister(User, UserLogin):
     pass
 
 class Tweet(BaseModel):
-    tweet_id: UUID = Field(...)
+    tweet_id: UUID = Field(default_factory= uuid4)
     content: str = Field(
         ...,
         max_length = 256,
@@ -117,7 +117,22 @@ def login():
     tags = ["Users"]
 )
 def users():
-    pass
+    """
+    This path operation shows all users in the app
+
+    Parameters:
+        -
+    Returns a json list with all users in the app, with the following keys
+        - user_id: UUID
+        - email: EmailStr
+        - first_name: str
+        - last_name: str
+        - birth_date: date
+    """
+
+    with open("users.json", "r", encoding="utf-8") as file:
+        results = json.load(file)
+        return results
 
 ### Show a single user
 @app.get(
@@ -158,13 +173,29 @@ def update_user():
 ### Show all tweets
 @app.get(
     path = "/",
-    response_model = List[Tweet],
+    #response_model = List[Tweet],
     status_code = status.HTTP_200_OK,
     summary = "Show all tweets",
     tags = ["Tweets"]
     )
 def home():
-    return {"Twitter API": "Working"}
+    """
+    This path operation shows all tweets in the app
+
+    Parameters:
+        -
+    Returns a json list with all tweets in the app, with the following keys:
+        tweet_id: UUID;
+        content: str;
+        created_at: datetime; 
+        update_at: Optional[datetime];
+        by: User
+    """
+
+    with open("tweets.json", "r", encoding="utf-8") as file:
+        results = json.load(file)
+        return results
+    
 
 ### Post a tweet
 @app.post(
@@ -174,8 +205,39 @@ def home():
     summary = "Post a tweet",
     tags = ["Tweets"]
 )
-def post():
-    pass
+def post(tweet: Tweet = Body(...)):
+    """
+    Post a Tweet 
+
+    This path operation post a tweet
+
+    parameters:
+        - Request body parameter
+            - tweet: Tweet
+    
+    Returns a json with the basic tweet information:
+        tweet_id: UUID
+        content: str
+        created_at: datetime 
+        update_at: Optional[datetime]
+        by: User 
+    """
+    with open("tweets.json", "r+", encoding = "utf-8") as file:
+         #results = json.loads(file.read())
+         results = json.load(file)
+         tweet_dict = tweet.dict()
+         tweet_dict["tweet_id"] = str(uuid4())
+         tweet_dict["created_at"] = str(tweet_dict["created_at"])
+         if tweet_dict["update_at"]:
+            tweet_dict["update_at"] = str(tweet_dict["update_at"])
+
+         tweet_dict["by"]["user_id"] = str(uuid4())
+         tweet_dict["by"]["birth_date"] = str(tweet_dict["by"]["birth_date"])
+         results.append(tweet_dict)
+         file.seek(0)
+         file.write(json.dumps(results))
+         
+         return tweet
 
 ### Show a tweet
 @app.get(
@@ -209,4 +271,3 @@ def delete_tweet():
 )
 def Update_tweet():
     pass
-
